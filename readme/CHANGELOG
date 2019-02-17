@@ -1,4 +1,114 @@
 ~~~~~~~~~~~~~~~~
+version 7.7.9
+~~~~~~~~~~~~~~~~
+
+* fix source.js not copying over when using tabnabbing
+* bump config version and add default apache dir to /var/www/html
+* fix sendmail not found on OSX when using phishing emails
+
+~~~~~~~~~~~~~~~~
+version 7.7.8
+~~~~~~~~~~~~~~~~
+
+* fix ident issue on harvester throwing templates off
+
+~~~~~~~~~~~~~~~~
+version 7.7.7
+~~~~~~~~~~~~~~~~
+
+* remove old test code
+* add better wording for templates
+* remove old templates yahoo and facebook
+* add better descriptions for using NAT/External IP addresses for credential harvester
+* fix if a custom PDF is selected, it won't default to a blank pdf
+* add user variable to harvester
+
+~~~~~~~~~~~~~~~~
+version 7.7.6
+~~~~~~~~~~~~~~~~
+
+* fix GOAT message when starting SSL server
+* fix BaseServer not being identified in import
+* fix OSX cloning for harvester (port allocation)
+* fix web server from not closing properly when using java applet attack
+
+~~~~~~~~~~~~~~~~
+version 7.7.5
+~~~~~~~~~~~~~~~~
+
+* fix line split based on = on credential harvester
+
+~~~~~~~~~~~~~~~~
+version 7.7.4
+~~~~~~~~~~~~~~~~
+
+* fix code
+
+~~~~~~~~~~~~~~~~
+version 7.7.3
+~~~~~~~~~~~~~~~~
+
+* added better randomization of variable names for powershell payloads to evade detection
+
+~~~~~~~~~~~~~~~~
+version 7.7.2
+~~~~~~~~~~~~~~~~
+
+* fix endswith nonetype error
+* fix directory traversal issue (thanks Spencer - awesome PR)
+* add automatic IP detection for settings in credential harvester
+
+~~~~~~~~~~~~~~~~
+version 7.7.1
+~~~~~~~~~~~~~~~~
+
+* added nginx to service to stop on top of apache2
+
+~~~~~~~~~~~~~~~~
+version 7.7
+~~~~~~~~~~~~~~~~
+
+* rewrote grab_ipaddress() function to be a centralized routine that incorporates hostnames or IP addresses.
+* rewrote grab_ipaddress() to include automatic detection of ipaddress or failover to manual entry. This will allow easier selection fo IP addresses without having to drop into a different window
+* add hostname support for hta attack vector
+* removed deploy binaries as a default option in the set.config file
+* added ability for new menu for java applet that now allows you to specify multiple commands - useful if you want to insert things like empire payloads, etc.
+* rewrote java applet to have additional functionality for multiple command menu
+* better handling on command output
+* fixed custom applet from not working properly
+* fixed custom executable from not working properly
+* added new unsigned obfsucated jar file
+* added Java.java source files for customization
+* added new Java Applet self-signed with new expirations
+
+~~~~~~~~~~~~~~~~
+version 7.6.5
+~~~~~~~~~~~~~~~~
+
+* added new chrome user agent in config - config will automatically update
+
+~~~~~~~~~~~~~~~~
+version 7.6.4
+~~~~~~~~~~~~~~~~
+
+* fix an issue where encoding messed up sql commands for mssql bruter attack vector in fasttrack
+
+~~~~~~~~~~~~~~~~
+version 7.6.3
+~~~~~~~~~~~~~~~~
+
+* fixed PEM import zipimporter error message - was more of a warning, supressed if not using pyopenssl
+* fixed a harvester not found exception in harvester
+* fixed powershell teensy conversion error when printing output
+
+~~~~~~~~~~~~~~~~
+7.6.2
+~~~~~~~~~~~~~~~~
+
+* code cleanup on arduino (PR)
+* fixed an issue in spear phishing that would hold payload generation into a constant loop
+
+~~~~~~~~~~~~~~~~
 version 7.6.1
 ~~~~~~~~~~~~~~~~
 

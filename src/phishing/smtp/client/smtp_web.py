@@ -62,10 +62,12 @@ for line in sendmail_file:
                 if os.path.isfile("/etc/init.d/sendmail"):
                     subprocess.Popen(
                         "/etc/init.d/sendmail start", shell=True).wait()
-                if not os.path.isfile("/etc/init.d/sendmail"):
-                    pause = input(
-                        "[!] Sendmail was not found. Try again and restart. (For Kali - apt-get install sendmail-bin)")
-                    sys.exit()
+
+                # added for osx
+                if not os.path.isfile("/usr/sbin/sendmail"):
+                    if not os.path.isfile("/etc/init.d/sendmail"):
+                        pause = input("[!] Sendmail was not found. Try again and restart. (For Kali - apt-get install sendmail-bin)")
+                        sys.exit()
                 smtp = ("localhost")
                 port = ("25")
                 # Flip sendmail switch to get rid of some questions
@@ -212,6 +214,17 @@ if option1 != "99":
         if not os.path.isfile(file_format):
             file_format = ""
 
+    inline_files = []
+    while True:
+        yesno = raw_input("Do you want to attach an inline file - [y/n]: ")
+        if yesno.lower() == "y" or yesno.lower() == "yes":
+            inline_file = raw_input(
+                "Enter the path to the inline file you want to attach: ")
+            if os.path.isfile(inline_file):
+                inline_files.append( inline_file )
+        else:
+            break
+
     subject = input(setprompt(["1"], "Email subject"))
     try:
         html_flag = input(
@@ -315,8 +328,18 @@ def mail(to, subject, prioflag1, prioflag2, text):
         fileMsg.set_payload(file(file_format).read())
         email.encoders.encode_base64(fileMsg)
         fileMsg.add_header(
-            'Content-Disposition', 'attachment;filename=%s' % (file_format))
+            'Content-Disposition', 'attachment; filename="%s"' % os.path.basename(file_format) )
         msg.attach(fileMsg)
+
+    for inline_file in inline_files:
+        if inline_file != "":
+            fileMsg = email.mime.base.MIMEBase('application', '')
+            fileMsg.set_payload(file(inline_file).read())
+            email.encoders.encode_base64(fileMsg)
+            fileMsg.add_header(
+                'Content-Disposition', 'inline; filename="%s"' % os.path.basename(inline_file) )
+            fileMsg.add_header( "Content-ID", "<%s>" % os.path.basename(inline_file) )
+            msg.attach(fileMsg)
 
     mailServer = smtplib.SMTP(smtp, port)
 

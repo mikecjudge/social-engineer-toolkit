@@ -24,7 +24,7 @@
 ##							                                                                    ##
 ## There are additional options; read the comments for additional descriptions.		            ##
 ##												                                                ##
-## CONFIG_VERSION=7.5										                                    ##
+## CONFIG_VERSION=7.7.9										                                    ##
 ##								                                                                ##
 ##################################################################################################
 ##################################################################################################
@@ -95,7 +95,7 @@ TIME_DELAY_EMAIL=1
 APACHE_SERVER=OFF
 #
 ### Path to the Apache web root.
-APACHE_DIRECTORY=/var/www
+APACHE_DIRECTORY=/var/www/html
 #
 ### Specify what port to run the HTTP server on that serves the Java applet attack
 ### or Metasploit exploit. The default is port 80. If you are using Apache, you
@@ -224,7 +224,7 @@ CUSTOM_LINUX_OSX_PAYLOAD=OFF
 ENABLE_PERSISTENCE_OSX=OFF
 #
 ### Determines what user agent string to use fo ranything that clones the website. 
-USER_AGENT_STRING=Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36
+USER_AGENT_STRING=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36
 #
 ### The SET interactive shell works by first deploying a stager payload that pulls an additional executable.
 ### The downloader is currently being picked up by anti-virus and is actually somewhat hard to obfuscate because it has 
@@ -241,7 +241,7 @@ AUTOMATIC_LISTENER=ON
 METASPLOIT_MODE=ON
 #
 ### This will turn off the deployment of binaries for the Java applet attack and only use the PowerShell method.
-DEPLOY_BINARIES=YES
+DEPLOY_BINARIES=NO
 #
 ### This is for debugging purposes only. This will remove the cleanup functionality within SET to debug file states.
 CLEANUP_ENABLED_DEBUG=OFF

